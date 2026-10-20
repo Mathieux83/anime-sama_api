@@ -1,3 +1,4 @@
+from datetime import date
 import logging
 import re
 from collections.abc import Sequence
@@ -10,12 +11,8 @@ from .langs import Lang, flags
 from .season import Season
 from .utils import remove_some_js_comments
 
-# Oversight from anime-sama that we should handle
-# 'Animes' instead of 'Anime' seen in Cyberpunk: Edgerunners and Valkyrie Apocalypse
-# 'Autre' instead of 'Autres' seen in Hazbin Hotel
-# 'Scans' is in the language section for Watamote (harder to handle)
-Type = Literal["Anime", "Scans", "Film", "Autres"]
-State = Literal["En cours"]
+Type = Literal["Anime", "Film", "Scans", "Webtoon", "Autres"]
+State = Literal["À venir", "En cours", "Terminé", "Annulé", "En pause"]
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +101,7 @@ class Catalogue:
                 values.setdefault(clean_label, []).append(self._clean_html(value))
         return values
 
+    # TODO: move to utils
     @staticmethod
     def _clean_html(value: str) -> str:
         return re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]*>", " ", value))).strip()
@@ -114,39 +112,30 @@ class Catalogue:
         if not search:
             return ""
 
-        return search[0]
+        return search[0].lstrip()
 
     async def state(self) -> str:
         info = await self._info_values()
-        state = next(iter(info.get("statut", [])), "")
-        if state:
-            if state in get_args(State):
-                return state
+        states = info.get("statut", [])
+        if states:
+            if states[0] in get_args(State):
+                return states[0]
             logger.warning(
-                "Error while parsing '%s'. \nPlease report this to the developer with URL: %s",
-                state,
-                self.url,
+                f"Error while parsing '{states[0]}'. \nPlease report this to the developer with URL: {self.url}",
             )
-            return ""
-
-        search = cast(
-            list[str],
-            re.findall(
-                r"État[^i]*?info-val\">(.+?)<",
-                await self.page(),
-            ),
-        )
-
-        if not search:
-            return ""
-
-        if search[0] in get_args(State):
-            return search[0]
-
-        logger.warning(
-            f"Error while parsing '{search[0]}'. \nPlease report this to the developer with URL: {self.url}"
-        )
         return ""
+
+    async def broadcasting_date(self) -> date | None:
+        raise NotImplementedError
+
+        info = await self._info_values()
+        diffusions = info.get("diffusion", [])
+
+        if not diffusions:
+            return
+
+        import time
+        return date(*(time.strptime(diffusions[0], "%d %b. %Y")[0:3]))  # issue with local: %b should be interpreted with french local
 
     async def year(self) -> int | None:
         info = await self._info_values()
@@ -156,19 +145,6 @@ class Catalogue:
                 if match:
                     return int(match.group(0))
 
-        search = cast(
-            list[str],
-            re.findall(
-                r"Année[^i]*?info-val\">(.+?)<",
-                await self.page(),
-            ),
-        )
-
-        if not search or not search[0].isdigit():
-            return None
-
-        return int(search[0])
-
     async def episode_count(self) -> int | None:
         info = await self._info_values()
         for value in info.get("épisodes", []):
@@ -176,19 +152,7 @@ class Catalogue:
             if match:
                 return int(match.group(0))
 
-        search = cast(
-            list[str],
-            re.findall(
-                r"Épisodes[^i]*?info-val\">(.+?)<",
-                await self.page(),
-            ),
-        )
-
-        if not search or not search[0].isdigit():
-            return None
-
-        return int(search[0])
-
+    # Currently not provided by Anime Sama. We consider this as deprecated: TODO add a warning
     async def chapter_count(self) -> int | None:
         info = await self._info_values()
         for value in info.get("chapitres", []):
@@ -196,56 +160,23 @@ class Catalogue:
             if match:
                 return int(match.group(0))
 
-        search = cast(
-            list[str],
-            re.findall(
-                r"Chapitres[^i]*?info-val\">(.+?)<",
-                await self.page(),
-            ),
-        )
-
-        if not search or not search[0].isdigit():
-            return None
-
-        return int(search[0])
-
     async def creator(self) -> str:
         info = await self._info_values()
-        creator = next(iter(info.get("créateur", []) + info.get("auteur", [])), "")
-        if creator:
-            return creator
+        creators = info.get("auteur", [])
 
-        search = cast(
-            list[str],
-            re.findall(
-                r"Créateur[^i]*?info-val\">(.+?)<",
-                await self.page(),
-            ),
-        )
-
-        if not search:
+        if not creators:
             return ""
 
-        return search[0]
+        return creators[0]
 
     async def studio(self) -> str:
         info = await self._info_values()
-        studio = next(iter(info.get("studio", [])), "")
-        if studio:
-            return studio
+        studios = info.get("studio", [])
 
-        search = cast(
-            list[str],
-            re.findall(
-                r"Studio[^d]*?display:block\">(.+?)<",
-                await self.page(),
-            ),
-        )
-
-        if not search:
+        if not studios:
             return ""
 
-        return search[0]
+        return studios[0]
 
     async def correspondence(self) -> str:
         page = await self.page()
@@ -254,42 +185,24 @@ class Catalogue:
             page,
             re.IGNORECASE | re.DOTALL,
         )
-        if match:
-            return self._clean_html(match.group(1))
 
-        search = cast(
-            list[str],
-            re.findall(
-                r"Correspondance[\W\w]*?\">(.+?)<",
-                page,
-            ),
-        )
-
-        if not search:
+        if not match:
             return ""
 
-        return search[0]
+        return self._clean_html(match.group(1))
 
     async def synopsis(self) -> str:
         page = await self.page()
         synopsis = re.search(
-            r"""<div\b[^>]*class=["'][^"']*\boe-synopsis\b[^"']*["'][^>]*>(.*?)</div\s*>""",
+            r"""<p\b[^>]*id=["'][^"']*\bsynopsisText\b[^"']*["'][^>]*>(.*?)</p\s*>""",
             page,
             re.IGNORECASE | re.DOTALL,
         )
-        if synopsis:
-            return self._clean_html(synopsis.group(1))
 
-        page_without_comments = remove_some_js_comments(string=page)
-
-        search = cast(
-            list[str], re.findall(r"Synopsis[\W\w]+?>(.+)<", page_without_comments)
-        )
-
-        if not search:
+        if not synopsis:
             return ""
 
-        return search[0]
+        return self._clean_html(synopsis.group(1))
 
     async def is_mature(self) -> bool:
         """Return True if the catalogue contain a warning about adult content"""
