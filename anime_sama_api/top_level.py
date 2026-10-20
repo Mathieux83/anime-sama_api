@@ -168,7 +168,7 @@ class AnimeSama:
             for card in parser.cards:
                 url = urljoin(self.site_url, card["url"])
 
-                def not_in_literal(value: Any) -> None:
+                def not_in_literal(value: Any, url=url) -> None:
                     logger.warning(
                         "Error while parsing '%s'. Please report this with URL: %s",
                         value,
@@ -212,7 +212,7 @@ class AnimeSama:
             types = types_str.split(", ") if types_str else []
             flags = re.findall(r"title=\"(.+?)\"", flags_str)
 
-            def not_in_literal(value: Any) -> None:
+            def not_in_literal(value: Any, url=url) -> None:
                 logger.warning(
                     f"Error while parsing '{value}'. \nPlease report this to the developer with URL: {url}"
                 )
@@ -220,11 +220,11 @@ class AnimeSama:
             types_checked = cast(
                 set[Type], set(filter_literal(types, Type, not_in_literal))
             )
-            languages = set(
+            languages = {
                 flagid2lang[flag.lower()]
                 for flag in flags
                 if flag.lower() in flagid2lang
-            )
+            }
 
             yield Catalogue(
                 url=url,
@@ -255,7 +255,7 @@ class AnimeSama:
 
             types = types.split(", ") if types else ["Anime"]
 
-            def not_in_literal(value: Any) -> None:
+            def not_in_literal(value: Any, season_url=season_url) -> None:
                 logger.warning(
                     f"Error while parsing '{value}'. \nPlease report this to the developer with URL: {season_url} (from homepage)"
                 )

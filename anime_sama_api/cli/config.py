@@ -1,6 +1,6 @@
 # TODO: Allway hard to read but I can't find a better way to do it
 import logging
-import sys
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -8,8 +8,6 @@ from pathlib import Path
 from platformdirs import user_config_dir, user_downloads_dir
 
 from anime_sama_api.langs import Lang, lang2ids
-
-import tomllib
 
 logger = logging.getLogger(__name__)
 

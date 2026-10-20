@@ -12,14 +12,12 @@ logger = logging.getLogger(__name__)
 
 class Players(list[str]):
     def __init__(self, *args: Sequence[Any], **kwargs: dict[Any, Any]):
-        ret = super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.swapPlayers()  # seem to exist on all pages but that could be false, to be sure check script_videos.js
 
         # Autofix old links
         for index, _ in enumerate(self):
             self[index] = self[index].replace("vidmoly.to", "vidmoly.net")
-
-        return ret
 
     def swapPlayers(self) -> None:
         if len(self) < 2:

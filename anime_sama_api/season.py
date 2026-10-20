@@ -4,7 +4,7 @@ import re
 from ast import literal_eval
 from dataclasses import dataclass, replace
 from functools import reduce
-from typing import Any, cast, get_args
+from typing import cast, get_args
 
 from httpx import AsyncClient
 
@@ -87,7 +87,9 @@ class Season:
 
                 for lang_id in lang2ids[flagid2lang[flag_id_vo]]:
                     if not pages_dict[lang_id].html:
-                        pages_dict[lang_id] = replace(pages_dict["vostfr"])  # replace=copy
+                        pages_dict[lang_id] = replace(
+                            pages_dict["vostfr"]
+                        )  # replace=copy
                         pages_dict[lang_id].lang_id = lang_id
                         break
 
@@ -244,7 +246,7 @@ class Season:
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, value: Any) -> bool:
+    def __eq__(self, value: object) -> bool:
         if not isinstance(value, Season):
             return False
         return self.url == value.url

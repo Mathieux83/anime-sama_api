@@ -1,9 +1,9 @@
-from datetime import date
 import logging
 import re
 from collections.abc import Sequence
+from datetime import date
 from html import unescape
-from typing import Any, Literal, cast, get_args
+from typing import Literal, cast, get_args
 
 from httpx import AsyncClient
 
@@ -135,7 +135,10 @@ class Catalogue:
             return
 
         import time
-        return date(*(time.strptime(diffusions[0], "%d %b. %Y")[0:3]))  # issue with local: %b should be interpreted with french local
+
+        return date(
+            *(time.strptime(diffusions[0], "%d %b. %Y")[0:3])
+        )  # issue with local: %b should be interpreted with french local
 
     async def year(self) -> int | None:
         info = await self._info_values()
@@ -240,7 +243,7 @@ class Catalogue:
     def __str__(self) -> str:
         return self.fancy_name
 
-    def __eq__(self, value: Any) -> bool:
+    def __eq__(self, value: object) -> bool:
         if not isinstance(value, Catalogue):
             return False
         return self.url == value.url

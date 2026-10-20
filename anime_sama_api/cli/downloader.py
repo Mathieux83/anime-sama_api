@@ -120,7 +120,7 @@ def download(
         prefer_languages, players_config.prefers, players_config.bans
     ):
         retry_time = 1
-        sucess = False
+        success = False
         download_progress.update(me, site=urlparse(player).hostname)
 
         while True:
@@ -129,7 +129,7 @@ def download(
                     error_code = cast(int, ydl.download([player]))
 
                     if not error_code:
-                        sucess = True
+                        success = True
                     else:
                         logger.fatal(
                             "The download encountered an error code %s. Please report this to the developer with URL: %s",
@@ -159,7 +159,7 @@ def download(
                         retry_time *= 2
 
                     case "crash":
-                        raise exception
+                        raise  # Reraise the same exception
 
                     case "":
                         logger.fatal(
@@ -168,7 +168,7 @@ def download(
                         )
                         break
 
-        if sucess:
+        if success:
             break
 
     download_progress.update(me, visible=False)
@@ -205,20 +205,19 @@ def multi_download(
     Not sure if you can use this function multiple times
     """
     total_progress.add_task("Downloaded", total=len(episodes))
-    with Live(progress, console=console):
-        with ThreadPoolExecutor(
-            max_workers=concurrent_downloads.get("video", 1)
-        ) as executor:
-            for episode, ep_year in zip(episodes, eps_years):
-                executor.submit(
-                    download,
-                    episode,
-                    path,
-                    episode_path,
-                    prefer_languages,
-                    players_config,
-                    concurrent_downloads.get("fragment", 1),
-                    max_retry_time,
-                    video_format,
-                    format_sort,
-                )
+    with Live(progress, console=console), ThreadPoolExecutor(
+        max_workers=concurrent_downloads.get("video", 1)
+    ) as executor:
+        for episode, ep_year in zip(episodes, eps_years):
+            executor.submit(
+                download,
+                episode,
+                path,
+                episode_path,
+                prefer_languages,
+                players_config,
+                concurrent_downloads.get("fragment", 1),
+                max_retry_time,
+                video_format,
+                format_sort,
+            )

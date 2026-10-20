@@ -1,3 +1,5 @@
+import functools
+import operator
 import re
 from collections.abc import Callable, Generator, Iterable, Sequence
 from itertools import zip_longest
@@ -25,7 +27,7 @@ def split_and_strip(string: str, delimiters: Iterable[str] | str) -> list[str]:
 
     string_list = [string]
     for delimiter in delimiters:
-        string_list = sum((part.split(delimiter) for part in string_list), [])
+        string_list = functools.reduce(operator.iadd, (part.split(delimiter) for part in string_list), [])
     return [part.strip() for part in string_list]
 
 

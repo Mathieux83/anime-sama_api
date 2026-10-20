@@ -1,10 +1,10 @@
 from collections.abc import Callable
 
-from pytest import fixture
 import pytest
+from pytest import fixture
 
-import anime_sama_api.cli.utils as utils
-from anime_sama_api.cli.utils import select_one, select_range, print_selection
+from anime_sama_api.cli import utils
+from anime_sama_api.cli.utils import print_selection, select_one, select_range
 
 
 # TODO: maybe make sure input_mock and print_mock are fully used at the end (maybe with statement)
