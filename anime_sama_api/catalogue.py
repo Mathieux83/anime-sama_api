@@ -1,6 +1,7 @@
 import logging
 import re
 from collections.abc import Sequence
+from html import unescape
 from typing import Any, Literal, cast, get_args
 
 from httpx import AsyncClient
@@ -85,6 +86,28 @@ class Catalogue:
 
         return seasons
 
+    async def _info_values(self) -> dict[str, list[str]]:
+        values: dict[str, list[str]] = {}
+        page = await self.page()
+        info_blocks = re.findall(
+            r"""<dl\b[^>]*class=["'][^"']*\boe-infos\b[^"']*["'][^>]*>(.*?)</dl\s*>""",
+            page,
+            re.IGNORECASE | re.DOTALL,
+        )
+        for block in info_blocks:
+            for label, value in re.findall(
+                r"<dt\b[^>]*>(.*?)</dt\s*>\s*<dd\b[^>]*>(.*?)</dd\s*>",
+                block,
+                re.IGNORECASE | re.DOTALL,
+            ):
+                clean_label = self._clean_html(label).casefold()
+                values.setdefault(clean_label, []).append(self._clean_html(value))
+        return values
+
+    @staticmethod
+    def _clean_html(value: str) -> str:
+        return re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]*>", " ", value))).strip()
+
     async def news(self) -> str:
         search = cast(list[str], re.findall(r"Actualité.+?>(.+?)<", await self.page()))
 
@@ -94,6 +117,18 @@ class Catalogue:
         return search[0]
 
     async def state(self) -> str:
+        info = await self._info_values()
+        state = next(iter(info.get("statut", [])), "")
+        if state:
+            if state in get_args(State):
+                return state
+            logger.warning(
+                "Error while parsing '%s'. \nPlease report this to the developer with URL: %s",
+                state,
+                self.url,
+            )
+            return ""
+
         search = cast(
             list[str],
             re.findall(
@@ -114,6 +149,13 @@ class Catalogue:
         return ""
 
     async def year(self) -> int | None:
+        info = await self._info_values()
+        for label in ("diffusion", "année", "année de sortie", "début"):
+            for value in info.get(label, []):
+                match = re.search(r"\b(?:19|20)\d{2}\b", value)
+                if match:
+                    return int(match.group(0))
+
         search = cast(
             list[str],
             re.findall(
@@ -123,11 +165,17 @@ class Catalogue:
         )
 
         if not search or not search[0].isdigit():
-            return
+            return None
 
         return int(search[0])
 
     async def episode_count(self) -> int | None:
+        info = await self._info_values()
+        for value in info.get("épisodes", []):
+            match = re.search(r"\d+", value)
+            if match:
+                return int(match.group(0))
+
         search = cast(
             list[str],
             re.findall(
@@ -137,11 +185,17 @@ class Catalogue:
         )
 
         if not search or not search[0].isdigit():
-            return
+            return None
 
         return int(search[0])
 
     async def chapter_count(self) -> int | None:
+        info = await self._info_values()
+        for value in info.get("chapitres", []):
+            match = re.search(r"\d+", value)
+            if match:
+                return int(match.group(0))
+
         search = cast(
             list[str],
             re.findall(
@@ -151,11 +205,18 @@ class Catalogue:
         )
 
         if not search or not search[0].isdigit():
-            return
+            return None
 
         return int(search[0])
 
     async def creator(self) -> str:
+        info = await self._info_values()
+        creator = next(
+            iter(info.get("créateur", []) + info.get("auteur", [])), ""
+        )
+        if creator:
+            return creator
+
         search = cast(
             list[str],
             re.findall(
@@ -170,6 +231,11 @@ class Catalogue:
         return search[0]
 
     async def studio(self) -> str:
+        info = await self._info_values()
+        studio = next(iter(info.get("studio", [])), "")
+        if studio:
+            return studio
+
         search = cast(
             list[str],
             re.findall(
@@ -184,11 +250,20 @@ class Catalogue:
         return search[0]
 
     async def correspondence(self) -> str:
+        page = await self.page()
+        match = re.search(
+            r"Correspondance\s*:.*?</strong>\s*(.*?)</span>",
+            page,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if match:
+            return self._clean_html(match.group(1))
+
         search = cast(
             list[str],
             re.findall(
                 r"Correspondance[\W\w]*?\">(.+?)<",
-                await self.page(),
+                page,
             ),
         )
 
@@ -198,7 +273,16 @@ class Catalogue:
         return search[0]
 
     async def synopsis(self) -> str:
-        page_without_comments = remove_some_js_comments(string=await self.page())
+        page = await self.page()
+        synopsis = re.search(
+            r"""<div\b[^>]*class=["'][^"']*\boe-synopsis\b[^"']*["'][^>]*>(.*?)</div\s*>""",
+            page,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if synopsis:
+            return self._clean_html(synopsis.group(1))
+
+        page_without_comments = remove_some_js_comments(string=page)
 
         search = cast(
             list[str], re.findall(r"Synopsis[\W\w]+?>(.+)<", page_without_comments)

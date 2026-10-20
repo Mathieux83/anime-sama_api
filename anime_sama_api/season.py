@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from ast import literal_eval
 from dataclasses import dataclass, replace
@@ -10,6 +11,12 @@ from httpx import AsyncClient
 from .episode import Episode, Languages, Players
 from .langs import LangId, flagid2lang, lang2ids
 from .utils import remove_some_js_comments, split_and_strip, zip_varlen
+
+logger = logging.getLogger(__name__)
+
+
+class EpisodeDataUnavailableError(RuntimeError):
+    pass
 
 
 @dataclass
@@ -32,6 +39,8 @@ class Season:
 
         self.name = name or url.split("/")[-2]
         self.serie_name = serie_name or url.split("/")[-3]
+        
+        
 
         self.client = client or AsyncClient()
 
@@ -41,6 +50,12 @@ class Season:
             response = await self.client.get(page_url)
 
             if response.is_error:
+                if response.status_code in (403, 429) or response.status_code >= 500:
+                    logger.warning(
+                        "Could not fetch season page %s (HTTP %s)",
+                        page_url,
+                        response.status_code,
+                    )
                 return SeasonLangPage(lang_id=lang_id)
 
             html = response.text
@@ -48,10 +63,18 @@ class Season:
 
             if not match_url:
                 return SeasonLangPage(lang_id=lang_id)
-
-            episodes_js = await self.client.get(page_url + match_url.group(0))
+            
+            # episodes_js = await self.client.get(page_url + match_url.group(0))
+            episodes_url = page_url + match_url.group(0)
+            # Need referer for acces to the script episodes.js
+            episodes_js = await self.client.get(episodes_url, headers={"Referer": page_url},)
 
             if episodes_js.is_error:
+                logger.warning(
+                    "Could not fetch episode data %s (HTTP %s)",
+                    episodes_url,
+                    episodes_js.status_code,
+                )
                 return SeasonLangPage(lang_id=lang_id)
 
             return SeasonLangPage(
@@ -62,17 +85,41 @@ class Season:
             *(process_page(lang_id) for lang_id in get_args(LangId))
         )
         pages_dict = {page.lang_id: page for page in pages}
+        
+        # regex to strict, here the fix for fetch episodes
         if pages_dict["vostfr"].html:
-            flag_id_vo = re.findall(
-                r"src=\".+flag_(.+?)\.png\".*?[\n\t]*<p.*?>VO</p>",
-                remove_some_js_comments(pages_dict["vostfr"].html),
-            )[0]
+            vostfr_html = remove_some_js_comments(pages_dict["vostfr"].html)
 
-            for lang_id in lang2ids[flagid2lang[flag_id_vo]]:
-                if not pages_dict[lang_id].html:
-                    pages_dict[lang_id] = replace(pages_dict["vostfr"])  # replace=copy
-                    pages_dict[lang_id].lang_id = lang_id
-                    break
+            flag_matches = re.findall(
+                r"src=\"[^\"]*flag_([^\"]+?)\.png\".*?<p[^>]*>\s*VO\s*</p>",
+                vostfr_html,
+                re.DOTALL | re.IGNORECASE,
+            )
+
+            if not flag_matches:
+                logger.warning(
+                    "Could not find VO flag ID in VOSTFR page: %s",
+                    self.url + "vostfr/",
+                )
+            else:
+                flag_id_vo = flag_matches[0]
+
+                for lang_id in lang2ids[flagid2lang[flag_id_vo]]:
+                    if not pages_dict[lang_id].html:
+                        pages_dict[lang_id] = replace(pages_dict["vostfr"])
+                        pages_dict[lang_id].lang_id = lang_id
+                        break
+        # if pages_dict["vostfr"].html:
+        #     flag_id_vo = re.findall(
+        #         r"src=\".+flag_(.+?)\.png\".*?[\n\t]*<p.*?>VO</p>",
+        #         remove_some_js_comments(pages_dict["vostfr"].html),
+        #     )[0]
+
+        #     for lang_id in lang2ids[flagid2lang[flag_id_vo]]:
+        #         if not pages_dict[lang_id].html:
+        #             pages_dict[lang_id] = replace(pages_dict["vostfr"])  # replace=copy
+        #             pages_dict[lang_id].lang_id = lang_id
+        #             break
 
         return [value for value in pages_dict.values() if value.html]
 
@@ -96,7 +143,13 @@ class Season:
             r"resetListe\(\); *[\n\r]+\t*(.*?)}",
             remove_some_js_comments(page.html),
             re.DOTALL,
-        )[-1]
+        )
+        if not functions:
+            raise EpisodeDataUnavailableError(
+                f"Could not find episode names for {self.serie_name} - {self.name} "
+                f"({self.url + page.lang_id}/)."
+            )
+        functions = functions[-1]
         functions_list = split_and_strip(functions, (";", "\n"))[:-1]
 
         def padding(n: int) -> str:
@@ -188,8 +241,18 @@ class Season:
 
     async def episodes(self) -> list[Episode]:
         pages = await self.get_all_pages()
+        if not pages:
+            raise EpisodeDataUnavailableError(
+                f"No episode data is available for {self.serie_name} - {self.name}. "
+                "The season pages or their episode data could not be read."
+            )
 
         players_list = [self._get_players_from(page) for page in pages]
+        if not any(players_list):
+            raise EpisodeDataUnavailableError(
+                f"No episode entries were found for {self.serie_name} - {self.name}. "
+                "The episode data format may have changed."
+            )
 
         number_of_episodes_max = max(
             len(episodes_page) for episodes_page in players_list

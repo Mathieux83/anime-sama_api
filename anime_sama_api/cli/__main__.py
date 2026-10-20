@@ -10,6 +10,7 @@ from rich.status import Status
 from anime_sama_api.cli import downloader, internal_player
 from anime_sama_api.cli.config import config
 from anime_sama_api.cli.utils import safe_input, select_one, select_range
+from anime_sama_api.season import EpisodeDataUnavailableError
 from anime_sama_api.top_level import AnimeSama, find_site_url
 
 console = get_console()
@@ -83,6 +84,9 @@ def main() -> int:
         asyncio.run(async_main())
     except (KeyboardInterrupt, asyncio.exceptions.CancelledError, EOFError):
         console.print("\n[red]Exiting...")
+    except EpisodeDataUnavailableError as error:
+        console.print(f"\n[red]{error}")
+        return 1
 
     return 0
 
