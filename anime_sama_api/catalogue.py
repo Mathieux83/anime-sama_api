@@ -3,7 +3,7 @@ import re
 from collections.abc import Sequence
 from datetime import date
 from html import unescape
-from typing import Literal, cast, get_args
+from typing import Literal, get_args
 
 from httpx import AsyncClient
 
@@ -107,7 +107,7 @@ class Catalogue:
         return re.sub(r"\s+", " ", unescape(re.sub(r"<[^>]*>", " ", value))).strip()
 
     async def news(self) -> str:
-        search = cast(list[str], re.findall(r"Actualité.+?>(.+?)<", await self.page()))
+        search = re.findall(r"Actualité.+?>(.+?)<", await self.page())
 
         if not search:
             return ""

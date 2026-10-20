@@ -47,7 +47,7 @@ class Players(list[str]):
 
 
 class Languages(dict[LangId, Players]):
-    def __init__(self, *args: Sequence[Any], **kargs: dict[Any, Any]) -> None:
+    def __init__(self, *args: dict[LangId, Players], **kargs: Players) -> None:
         super().__init__(*args, **kargs)
         if not self:
             logger.warning("No player available for %s", self)

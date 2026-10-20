@@ -4,7 +4,7 @@ import re
 from ast import literal_eval
 from dataclasses import dataclass, replace
 from functools import reduce
-from typing import cast, get_args
+from typing import get_args
 
 from httpx import AsyncClient
 
@@ -102,7 +102,7 @@ class Season:
         )
         players_list = sorted(players_list, key=lambda tuple: tuple[0])
         players_list_links = (
-            cast(list[str], re.findall(r"'(.+?)'", player))
+            re.findall(r"'(.+?)'", player)
             for _, player in players_list
         )
 
@@ -142,7 +142,6 @@ class Season:
                 args = literal_eval(node_or_string=args_sting + ",")
                 if type(args) is not tuple:
                     continue
-                args = cast(tuple, args)
             else:
                 args = ()
 
@@ -207,7 +206,7 @@ class Season:
                     curr_done += pos + 1
                     break
             else:
-                fusion.append((name_new, Languages({page.lang_id: players})))  # type: ignore
+                fusion.append((name_new, Languages({page.lang_id: players})))
         fusion.extend(current[curr_done:])
         return fusion
 

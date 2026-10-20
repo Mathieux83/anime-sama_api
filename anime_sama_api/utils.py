@@ -1,7 +1,7 @@
 import functools
 import operator
 import re
-from collections.abc import Callable, Generator, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterable
 from itertools import zip_longest
 from typing import Any, TypeVar, cast, get_args
 
@@ -10,7 +10,7 @@ T = TypeVar("T")
 
 # By Mike Müller (https://stackoverflow.com/a/38059462)
 def zip_varlen(
-    *iterables: Sequence[Iterable[T]], sentinel: object = object()
+    *iterables: Iterable[T], sentinel: object = object()
 ) -> list[list[T]]:
     return cast(
         list[list[T]],
