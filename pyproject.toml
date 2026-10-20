@@ -40,7 +40,6 @@ Repository = "https://github.com/Sky-NiniKo/anime-sama_api/"
 cli = [
     "platformdirs>=4.11.0",
     "rich>=15.0.0",
-    "tomli>=2.4.1 ; python_full_version < '3.11'",
     "yt-dlp>=2026.7.4",
 ]
 

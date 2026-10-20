@@ -9,10 +9,7 @@ from platformdirs import user_config_dir, user_downloads_dir
 
 from anime_sama_api.langs import Lang, lang2ids
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
+import tomllib
 
 logger = logging.getLogger(__name__)
 
