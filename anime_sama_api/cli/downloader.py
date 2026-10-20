@@ -25,7 +25,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
 from anime_sama_api.cli.config import PlayersConfig, config
-from anime_sama_api.cli.error_handeling import YDL_log_filter, reaction_to
+from anime_sama_api.cli.error_handling import YDL_log_filter, reaction_to
 from anime_sama_api.episode import Episode
 from anime_sama_api.langs import Lang
 
@@ -92,7 +92,7 @@ def download(
     full_path = (
         path
         / episode_path.format(
-            serie=episode.serie_name,
+            series=episode.series_name,
             season=episode.season_name,
             episode=episode.name,
             release_year_parentheses="" if ep_year is None else f" {ep_year}",

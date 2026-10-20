@@ -31,14 +31,14 @@ class Season:
         self,
         url: str,
         name: str = "",
-        serie_name: str = "",
+        series_name: str = "",
         client: AsyncClient | None = None,
     ) -> None:
         self.url = url
         self.site_url = "/".join(url.split("/")[:3]) + "/"
 
         self.name = name or url.split("/")[-2]
-        self.serie_name = serie_name or url.split("/")[-3]
+        self.series_name = series_name or url.split("/")[-3]
 
         self.client = client or AsyncClient()
 
@@ -118,7 +118,7 @@ class Season:
         )
         if not functions:
             raise EpisodeDataUnavailableError(
-                f"Could not find episode names for {self.serie_name} - {self.name} "
+                f"Could not find episode names for {self.series_name} - {self.name} "
                 f"({self.url + page.lang_id}/)."
             )
         functions = functions[-1]
@@ -152,7 +152,7 @@ class Season:
                     if len(args) < 2:
                         # Only seen on Dragon Ball GT (Film), Junji Ito Collection (Saison 1) and Orange (Film)
                         # Surely a small oversight in anime-sama
-                        # So it is undefined but do nothing is generaly the good reaction
+                        # So it is undefined but do nothing is generally the good reaction
                         continue
 
                     episodes_name += episode_name_range(int(args[0]), int(args[1]) + 1)
@@ -231,7 +231,7 @@ class Season:
         return [
             Episode(
                 languages,
-                self.serie_name,
+                self.series_name,
                 self.name,
                 name,
                 index,
@@ -240,7 +240,7 @@ class Season:
         ]
 
     def __repr__(self) -> str:
-        return f"Season({self.name!r}, {self.serie_name!r})"
+        return f"Season({self.name!r}, {self.series_name!r})"
 
     def __str__(self) -> str:
         return self.name

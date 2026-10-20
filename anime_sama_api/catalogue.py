@@ -75,7 +75,7 @@ class Catalogue:
             Season(
                 url=self.url + link,
                 name=name,
-                serie_name=self.name,
+                series_name=self.name,
                 client=self.client,
             )
             for name, link in seasons

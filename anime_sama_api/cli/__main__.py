@@ -53,7 +53,7 @@ async def async_main() -> None:
         with spinner(f"Getting episode list for [blue]{season.name}"):
             episodes = await season.episodes()
 
-        console.print(f"\n[cyan bold underline]{season.serie_name} - {season.name}")
+        console.print(f"\n[cyan bold underline]{season.series_name} - {season.name}")
         selected_episodes = select_range(
             episodes, msg="Choose episode(s)", print_choices=True
         )

@@ -88,7 +88,7 @@ class Languages(dict[LangId, Players]):
 @dataclass(frozen=True)
 class Episode:
     languages: Languages
-    serie_name: str = ""
+    series_name: str = ""
     season_name: str = ""
     _name: str = ""
     index: int = 1
@@ -114,7 +114,7 @@ class Episode:
 
     @property
     def short_name(self) -> str:
-        return f"{self.serie_name} S{self.season_number:02}E{self.index:02}"
+        return f"{self.series_name} S{self.season_number:02}E{self.index:02}"
 
     def __str__(self) -> str:
         return self.fancy_name

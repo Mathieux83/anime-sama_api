@@ -20,7 +20,7 @@ async def test_avancement():
 
 
 @pytest.mark.asyncio
-async def test_correspondance():
+async def test_correspondence():
     assert (
         await catalogue_data.one_piece.correspondence()
         == "Episode 1155 -> Chapitre 1125"

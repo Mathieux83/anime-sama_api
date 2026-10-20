@@ -24,7 +24,7 @@ async def main():
     for release in reversed(new_releases):
         print(
             f"<item>\n"
-            f"<title>New release for {escape(release.serie_name)}</title>\n"
+            f"<title>New release for {escape(release.series_name)}</title>\n"
             f"<description>{escape(release.fancy_name)}</description>\n"
             f"<link>{release.page_url}</link>\n"
             f'<guid isPermaLink="false">{release.__hash__()}</guid>\n'

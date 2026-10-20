@@ -128,7 +128,7 @@ async def find_site_url(
 class EpisodeRelease:
     page_url: str
     image_url: str
-    serie_name: str
+    series_name: str
     types: tuple[Type]
     language: Lang
     episode_name: str
@@ -139,7 +139,7 @@ class EpisodeRelease:
 
     @property
     def fancy_name(self) -> str:
-        return f"{self.serie_name} - {self.episode_name} {flags.get(self.language, '')}"
+        return f"{self.series_name} - {self.episode_name} {flags.get(self.language, '')}"
 
 
 class AnimeSama:
@@ -247,7 +247,7 @@ class AnimeSama:
                 image_url,
                 types,
                 language_str,
-                serie_name,
+                series_name,
                 episode_name,
                 timestamp,
             ) = match.groups()
@@ -271,7 +271,7 @@ class AnimeSama:
             yield EpisodeRelease(
                 page_url=season_url,
                 image_url=image_url,
-                serie_name=serie_name,
+                series_name=series_name,
                 types=types_checked,
                 language=language,
                 episode_name=episode_name,
