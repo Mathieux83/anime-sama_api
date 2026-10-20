@@ -123,8 +123,6 @@ async def find_site_url(
         redirected = await client.get(match.group(1), follow_redirects=True)
         return str(redirected.url) + "/"
 
-    return None
-
 
 @dataclass(frozen=True)
 class EpisodeRelease:
@@ -289,10 +287,7 @@ class AnimeSama:
 
         pages_regex = re.findall(r"page=(\d+)", response.text)
 
-        if not pages_regex:
-            last_page = 1
-        else:
-            last_page = int(pages_regex[-1])
+        last_page = max((int(page) for page in pages_regex), default=1)
 
         responses = [response] + await asyncio.gather(
             *(
