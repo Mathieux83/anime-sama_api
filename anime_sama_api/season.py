@@ -77,7 +77,7 @@ class Season:
             vostfr_html = remove_some_js_comments(pages_dict["vostfr"].html)
 
             flag_matches = re.findall(
-                r"src=\"[^\"]*flag_([^\"]+?)\.png\".*?<p[^>]*>\s*VO\s*</p>",
+                r"src=\"[^\"]*flag_([^\"]+?)\.png\".*?<span[^>]*>\s*VOSTFR\s*</span>",
                 vostfr_html,
                 re.DOTALL | re.IGNORECASE,
             )
