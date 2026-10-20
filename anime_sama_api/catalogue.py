@@ -211,9 +211,7 @@ class Catalogue:
 
     async def creator(self) -> str:
         info = await self._info_values()
-        creator = next(
-            iter(info.get("créateur", []) + info.get("auteur", [])), ""
-        )
+        creator = next(iter(info.get("créateur", []) + info.get("auteur", [])), "")
         if creator:
             return creator
 

@@ -39,8 +39,6 @@ class Season:
 
         self.name = name or url.split("/")[-2]
         self.serie_name = serie_name or url.split("/")[-3]
-        
-        
 
         self.client = client or AsyncClient()
 
@@ -63,11 +61,14 @@ class Season:
 
             if not match_url:
                 return SeasonLangPage(lang_id=lang_id)
-            
+
             # episodes_js = await self.client.get(page_url + match_url.group(0))
             episodes_url = page_url + match_url.group(0)
             # Need referer for acces to the script episodes.js
-            episodes_js = await self.client.get(episodes_url, headers={"Referer": page_url},)
+            episodes_js = await self.client.get(
+                episodes_url,
+                headers={"Referer": page_url},
+            )
 
             if episodes_js.is_error:
                 logger.warning(
@@ -85,7 +86,7 @@ class Season:
             *(process_page(lang_id) for lang_id in get_args(LangId))
         )
         pages_dict = {page.lang_id: page for page in pages}
-        
+
         # regex to strict, here the fix for fetch episodes
         if pages_dict["vostfr"].html:
             vostfr_html = remove_some_js_comments(pages_dict["vostfr"].html)
